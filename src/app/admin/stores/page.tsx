@@ -27,11 +27,11 @@ export default async function StoresPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  // Get all vendor profiles (admin role users)
+  // Get all non-super_admin profiles (potential vendors)
   const { data: vendors } = await supabase
     .from("profiles")
     .select("*")
-    .in("role", ["admin", "customer"])
+    .neq("role", "super_admin")
     .order("created_at", { ascending: false });
 
   return (

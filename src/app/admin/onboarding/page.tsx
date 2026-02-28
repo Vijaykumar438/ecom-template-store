@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -37,6 +37,27 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  // Prevent super_admin from accessing onboarding
+  const supabaseCheck = createBrowserClient();
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabaseCheck.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabaseCheck
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        if (profile?.role === 'super_admin') {
+          router.replace('/admin');
+          return;
+        }
+      }
+      setChecking(false);
+    })();
+  }, []);
 
   // Form state
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
@@ -146,6 +167,14 @@ export default function OnboardingPage() {
     if (step === 1) return !!storeName.trim() && !!whatsappNumber.trim();
     return true;
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">

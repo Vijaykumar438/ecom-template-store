@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardContent } from "./dashboard-content";
+import { StoresManager } from "./stores/stores-manager";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -11,22 +12,40 @@ export default async function AdminDashboardPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Get profile + tenant
+  // Get profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("user_id", user.id)
     .single();
 
+  // ─── SUPER ADMIN: Show all stores & vendors ───
+  if (profile?.role === "super_admin") {
+    const { data: tenants } = await supabase
+      .from("tenants")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    const { data: vendors } = await supabase
+      .from("profiles")
+      .select("*")
+      .neq("role", "super_admin")
+      .order("created_at", { ascending: false });
+
+    return (
+      <StoresManager
+        tenants={tenants || []}
+        vendors={vendors || []}
+      />
+    );
+  }
+
+  // ─── NEW USER (no store assigned): Show onboarding ───
   if (!profile?.tenant_id) {
-    // Super admin without a selected store → go to store management
-    if (profile?.role === "super_admin") {
-      redirect("/admin/stores");
-    }
     redirect("/admin/onboarding");
   }
 
-  // Fetch stats in parallel
+  // ─── VENDOR: Show their store dashboard ───
   const [productsRes, ordersRes, pendingRes] = await Promise.all([
     supabase
       .from("products")
