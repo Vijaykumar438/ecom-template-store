@@ -16,7 +16,7 @@ interface StoreHeaderProps {
 export function StoreHeader({ tenant }: StoreHeaderProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { getItemCount } = useCartStore();
-  const itemCount = getItemCount();
+  const itemCount = getItemCount(tenant.id);
 
   return (
     <>
@@ -89,6 +89,7 @@ export function StoreHeader({ tenant }: StoreHeaderProps) {
 
       <CartSheet
         storeSlug={tenant.slug}
+        tenantId={tenant.id}
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
       />

@@ -89,8 +89,8 @@ export function ProductCard({ product, tenantId, index = 0 }: ProductCardProps) 
                     className="h-8 w-8 rounded-lg"
                     onClick={() =>
                       cartItem.quantity <= 1
-                        ? removeItem(product.id)
-                        : updateQuantity(product.id, cartItem.quantity - 1)
+                        ? removeItem(product.id, tenantId)
+                        : updateQuantity(product.id, tenantId, cartItem.quantity - 1)
                     }
                   >
                     <Minus className="h-3 w-3" />
@@ -102,7 +102,7 @@ export function ProductCard({ product, tenantId, index = 0 }: ProductCardProps) 
                     size="icon"
                     className="h-8 w-8 rounded-lg"
                     onClick={() =>
-                      updateQuantity(product.id, cartItem.quantity + 1)
+                      updateQuantity(product.id, tenantId, cartItem.quantity + 1)
                     }
                   >
                     <Plus className="h-3 w-3" />

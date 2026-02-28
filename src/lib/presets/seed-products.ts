@@ -40,7 +40,7 @@ const demoProductsByType: Record<BusinessType, DemoProduct[]> = {
       price: 499,
       unit: "pack",
       categoryIndex: 3,
-      image: "https://images.unsplash.com/photo-1596273501048-3e439c8e65f5?w=400&h=400&fit=crop",
+      image: "https://images.unsplash.com/photo-1606050451137-31da498e7f42?w=400&h=400&fit=crop",
     },
   ],
 

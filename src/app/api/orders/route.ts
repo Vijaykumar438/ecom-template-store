@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         customer_name: name,
         customer_whatsapp: whatsappNumber,
         delivery_address: address,
-        notes: notes || null,
+        order_notes: notes || null,
         total_amount: totalAmount,
         status: "pending",
       })

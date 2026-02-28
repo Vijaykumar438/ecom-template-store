@@ -17,7 +17,7 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
-export type UserRole = "admin" | "customer";
+export type UserRole = "super_admin" | "admin" | "customer";
 
 // ─── Tables ───────────────────────────────────────────────────────
 

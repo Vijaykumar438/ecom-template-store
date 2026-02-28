@@ -18,19 +18,20 @@ import { useCartStore } from "@/lib/store/cart";
 
 interface CartSheetProps {
   storeSlug: string;
+  tenantId: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function CartSheet({ storeSlug, isOpen, onClose }: CartSheetProps) {
+export function CartSheet({ storeSlug, tenantId, isOpen, onClose }: CartSheetProps) {
   const { items, updateQuantity, removeItem, getTotal, getItemCount } =
     useCartStore();
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Filter items for this store's tenant
-  const storeItems = items.filter((item) => item.tenantId);
-  const totalAmount = getTotal();
-  const itemCount = getItemCount();
+  // Filter items for this store's tenant only
+  const storeItems = items.filter((item) => item.tenantId === tenantId);
+  const totalAmount = getTotal(tenantId);
+  const itemCount = getItemCount(tenantId);
 
   // Close on escape key
   useEffect(() => {
@@ -144,9 +145,10 @@ export function CartSheet({ storeSlug, isOpen, onClose }: CartSheetProps) {
                               <button
                                 onClick={() =>
                                   item.quantity <= 1
-                                    ? removeItem(item.productId)
+                                    ? removeItem(item.productId, tenantId)
                                     : updateQuantity(
                                         item.productId,
+                                        tenantId,
                                         item.quantity - 1
                                       )
                                 }
@@ -161,6 +163,7 @@ export function CartSheet({ storeSlug, isOpen, onClose }: CartSheetProps) {
                                 onClick={() =>
                                   updateQuantity(
                                     item.productId,
+                                    tenantId,
                                     item.quantity + 1
                                   )
                                 }
@@ -174,7 +177,7 @@ export function CartSheet({ storeSlug, isOpen, onClose }: CartSheetProps) {
                                 {formatPrice(item.price * item.quantity)}
                               </span>
                               <button
-                                onClick={() => removeItem(item.productId)}
+                                onClick={() => removeItem(item.productId, tenantId)}
                                 className="text-gray-400 hover:text-red-500 transition-colors"
                               >
                                 <Trash2 className="h-4 w-4" />

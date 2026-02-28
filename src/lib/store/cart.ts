@@ -8,11 +8,11 @@ interface CartState {
 
   // Actions
   addItem: (item: LocalCartItem) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  getItemCount: () => number;
-  getTotal: () => number;
+  removeItem: (productId: string, tenantId: string) => void;
+  updateQuantity: (productId: string, tenantId: string, quantity: number) => void;
+  clearCart: (tenantId?: string) => void;
+  getItemCount: (tenantId?: string) => number;
+  getTotal: (tenantId?: string) => number;
   getItemsByTenant: (tenantId: string) => LocalCartItem[];
 
   // Saved checkout details
@@ -47,30 +47,51 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      removeItem: (productId) => {
+      removeItem: (productId, tenantId) => {
         set((state) => ({
-          items: state.items.filter((i) => i.productId !== productId),
-        }));
-      },
-
-      updateQuantity: (productId, quantity) => {
-        if (quantity <= 0) {
-          get().removeItem(productId);
-          return;
-        }
-        set((state) => ({
-          items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
+          items: state.items.filter(
+            (i) => !(i.productId === productId && i.tenantId === tenantId)
           ),
         }));
       },
 
-      clearCart: () => set({ items: [] }),
+      updateQuantity: (productId, tenantId, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(productId, tenantId);
+          return;
+        }
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.productId === productId && i.tenantId === tenantId
+              ? { ...i, quantity }
+              : i
+          ),
+        }));
+      },
 
-      getItemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+      clearCart: (tenantId?) => {
+        if (tenantId) {
+          set((state) => ({
+            items: state.items.filter((i) => i.tenantId !== tenantId),
+          }));
+        } else {
+          set({ items: [] });
+        }
+      },
 
-      getTotal: () =>
-        get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      getItemCount: (tenantId?) => {
+        const items = tenantId
+          ? get().items.filter((i) => i.tenantId === tenantId)
+          : get().items;
+        return items.reduce((sum, i) => sum + i.quantity, 0);
+      },
+
+      getTotal: (tenantId?) => {
+        const items = tenantId
+          ? get().items.filter((i) => i.tenantId === tenantId)
+          : get().items;
+        return items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      },
 
       getItemsByTenant: (tenantId) =>
         get().items.filter((i) => i.tenantId === tenantId),

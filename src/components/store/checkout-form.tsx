@@ -35,7 +35,7 @@ export function CheckoutForm({ storeSlug, tenantId, onSubmit }: CheckoutFormProp
   }, [savedDetails]);
 
   const storeItems = items.filter((item) => item.tenantId === tenantId);
-  const total = getTotal();
+  const total = storeItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

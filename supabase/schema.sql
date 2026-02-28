@@ -6,6 +6,22 @@
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- ─── DROP EXISTING (safe re-run) ────────────────────────────
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS set_order_number ON orders;
+DROP FUNCTION IF EXISTS handle_new_user();
+DROP FUNCTION IF EXISTS generate_order_number();
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS tenants CASCADE;
+DROP TYPE IF EXISTS order_status;
+DROP TYPE IF EXISTS user_role;
+DROP TYPE IF EXISTS business_type;
+
 -- ─── TENANTS ────────────────────────────────────────────────
 
 CREATE TYPE business_type AS ENUM (
@@ -30,7 +46,7 @@ CREATE TABLE tenants (
 
 -- ─── PROFILES ───────────────────────────────────────────────
 
-CREATE TYPE user_role AS ENUM ('admin', 'customer');
+CREATE TYPE user_role AS ENUM ('super_admin', 'admin', 'customer');
 
 CREATE TABLE profiles (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -113,6 +129,18 @@ CREATE INDEX idx_orders_tenant ON orders(tenant_id);
 CREATE INDEX idx_orders_status ON orders(tenant_id, status);
 CREATE INDEX idx_tenants_slug ON tenants(slug);
 
+-- ─── HELPER: Check if current user is super_admin ────────────
+
+CREATE OR REPLACE FUNCTION is_super_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE user_id = auth.uid() AND role = 'super_admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
+
 -- ─── ROW LEVEL SECURITY ─────────────────────────────────────
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
@@ -126,47 +154,54 @@ ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Tenants are publicly readable"
   ON tenants FOR SELECT USING (true);
 
--- Only owner can update their tenant
+-- Owner or super_admin can update tenants
 CREATE POLICY "Owners can update their tenant"
-  ON tenants FOR UPDATE USING (auth.uid() = owner_user_id);
+  ON tenants FOR UPDATE USING (auth.uid() = owner_user_id OR is_super_admin());
 
--- Authenticated users can insert tenants
+-- Owner or super_admin can create tenants
 CREATE POLICY "Authenticated users can create tenants"
-  ON tenants FOR INSERT WITH CHECK (auth.uid() = owner_user_id);
+  ON tenants FOR INSERT WITH CHECK (auth.uid() = owner_user_id OR is_super_admin());
 
--- Profiles: users can read/update their own
+-- Super admin can delete tenants
+CREATE POLICY "Super admin can delete tenants"
+  ON tenants FOR DELETE USING (is_super_admin());
+
+-- Profiles: users can read/update their own, super_admin can read/update all
 CREATE POLICY "Users can view their own profile"
-  ON profiles FOR SELECT USING (auth.uid() = user_id);
+  ON profiles FOR SELECT USING (auth.uid() = user_id OR is_super_admin());
 
 CREATE POLICY "Users can update their own profile"
-  ON profiles FOR UPDATE USING (auth.uid() = user_id);
+  ON profiles FOR UPDATE USING (auth.uid() = user_id OR is_super_admin());
 
 CREATE POLICY "Users can insert their own profile"
   ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Categories: public read, owner write
+-- Categories: public read, owner or super_admin write
 CREATE POLICY "Categories are publicly readable"
   ON categories FOR SELECT USING (true);
 
 CREATE POLICY "Tenant owners can manage categories"
   ON categories FOR ALL USING (
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR is_super_admin()
   );
 
--- Products: public read (available only), owner write
+-- Products: public read, owner or super_admin write
 CREATE POLICY "Available products are publicly readable"
   ON products FOR SELECT USING (true);
 
 CREATE POLICY "Tenant owners can manage products"
   ON products FOR ALL USING (
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR is_super_admin()
   );
 
--- Orders: customer can view own, owner can view all for tenant
+-- Orders: customer can view own, owner or super_admin can view all for tenant
 CREATE POLICY "Customers can view their orders"
   ON orders FOR SELECT USING (
     user_id = auth.uid() OR
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR is_super_admin()
   );
 
 CREATE POLICY "Anyone can create orders (guest checkout)"
@@ -175,6 +210,7 @@ CREATE POLICY "Anyone can create orders (guest checkout)"
 CREATE POLICY "Tenant owners can update orders"
   ON orders FOR UPDATE USING (
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR is_super_admin()
   );
 
 -- Order items: same as orders
@@ -184,6 +220,7 @@ CREATE POLICY "Order items readable with order access"
       user_id = auth.uid() OR
       tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
     )
+    OR is_super_admin()
   );
 
 CREATE POLICY "Anyone can insert order items"
@@ -233,7 +270,12 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Grant execute permission to supabase_auth_admin
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+GRANT ALL ON public.profiles TO supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION handle_new_user() TO supabase_auth_admin;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users

@@ -42,7 +42,7 @@ export function CheckoutClient({ tenant, storeSlug }: CheckoutClientProps) {
     }
 
     const { orderId, orderNumber } = await res.json();
-    clearCart();
+    clearCart(tenant.id);
     router.push(
       `/store/${storeSlug}/order-confirmation/${orderNumber}`
     );
