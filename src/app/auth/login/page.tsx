@@ -37,7 +37,23 @@ function LoginContent() {
       return;
     }
 
-    router.push("/admin");
+    // Fetch profile for role-based routing
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile?.role === "super_admin" || profile?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
+    } else {
+      router.push("/");
+    }
     router.refresh();
   };
 
@@ -45,7 +61,7 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

@@ -145,6 +145,12 @@ export function StoresManager({ tenants: initialTenants, vendors }: StoresManage
 
     setLoading(true);
     try {
+      // Reset any assigned vendor's profile before deleting
+      await supabase
+        .from("profiles")
+        .update({ tenant_id: null, role: "customer" })
+        .eq("tenant_id", tenantId);
+
       await supabase.from("tenants").delete().eq("id", tenantId);
       setTenants(tenants.filter((t) => t.id !== tenantId));
       router.refresh();
@@ -448,33 +454,72 @@ export function StoresManager({ tenants: initialTenants, vendors }: StoresManage
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {vendors.map((vendor) => (
-                      <button
-                        key={vendor.id}
-                        onClick={() =>
-                          handleAssignVendor(showAssignModal, vendor.user_id)
-                        }
-                        disabled={loading}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
-                      >
-                        <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                          {vendor.full_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {vendor.full_name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {vendor.tenant_id ? "Currently assigned to a store" : "Unassigned"}
-                          </p>
-                        </div>
-                        {vendor.tenant_id === showAssignModal && (
-                          <Badge variant="success" className="text-[10px]">
-                            Current
-                          </Badge>
-                        )}
-                      </button>
-                    ))}
+                    {vendors
+                      .sort((a, b) => {
+                        // Show unassigned first, then currently assigned to this store, then others
+                        const aScore = !a.tenant_id ? 0 : a.tenant_id === showAssignModal ? 1 : 2;
+                        const bScore = !b.tenant_id ? 0 : b.tenant_id === showAssignModal ? 1 : 2;
+                        return aScore - bScore;
+                      })
+                      .map((vendor) => {
+                        const isAssignedHere = vendor.tenant_id === showAssignModal;
+                        const isAssignedElsewhere = vendor.tenant_id && vendor.tenant_id !== showAssignModal;
+                        const assignedStore = isAssignedElsewhere
+                          ? tenants.find((t) => t.id === vendor.tenant_id)?.store_name
+                          : null;
+
+                        return (
+                          <button
+                            key={vendor.id}
+                            onClick={() =>
+                              isAssignedElsewhere
+                                ? confirm(`${vendor.full_name} is currently assigned to "${assignedStore}". Reassign to this store?`) &&
+                                  handleAssignVendor(showAssignModal, vendor.user_id)
+                                : handleAssignVendor(showAssignModal, vendor.user_id)
+                            }
+                            disabled={loading || isAssignedHere}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left ${
+                              isAssignedHere
+                                ? "bg-green-50 cursor-default"
+                                : isAssignedElsewhere
+                                ? "bg-amber-50/50 hover:bg-amber-50"
+                                : "hover:bg-gray-50"
+                            }`}
+                          >
+                            <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm ${
+                              isAssignedHere
+                                ? "bg-green-100 text-green-600"
+                                : isAssignedElsewhere
+                                ? "bg-amber-100 text-amber-600"
+                                : "bg-blue-100 text-blue-600"
+                            }`}>
+                              {vendor.full_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {vendor.full_name}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {isAssignedHere
+                                  ? "Assigned to this store"
+                                  : isAssignedElsewhere
+                                  ? `Assigned to ${assignedStore}`
+                                  : "Unassigned — ready to assign"}
+                              </p>
+                            </div>
+                            {isAssignedHere && (
+                              <Badge variant="success" className="text-[10px]">
+                                Current
+                              </Badge>
+                            )}
+                            {isAssignedElsewhere && (
+                              <Badge className="text-[10px] bg-amber-100 text-amber-700 hover:bg-amber-100">
+                                Reassign
+                              </Badge>
+                            )}
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
               </div>

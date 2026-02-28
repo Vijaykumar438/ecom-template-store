@@ -36,7 +36,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin/onboarding`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -66,7 +66,7 @@ export default function SignupPage() {
           </h2>
           <p className="text-gray-500 text-sm">
             We&apos;ve sent a verification link to <strong>{email}</strong>. Click
-            the link to activate your account and set up your store.
+            the link to activate your account.
           </p>
         </motion.div>
       </div>
@@ -87,7 +87,7 @@ export default function SignupPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
           <p className="text-gray-500 mt-1">
-            Start selling online in minutes
+            Sign up to get started
           </p>
         </div>
 

@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
   if (!user) redirect("/auth/login");
 
   // Get profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("user_id", user.id)
@@ -40,9 +40,9 @@ export default async function AdminDashboardPage() {
     );
   }
 
-  // ─── NEW USER (no store assigned): Show onboarding ───
+  // ─── NEW USER (no store assigned): Redirect home ───
   if (!profile?.tenant_id) {
-    redirect("/admin/onboarding");
+    redirect("/");
   }
 
   // ─── VENDOR: Show their store dashboard ───

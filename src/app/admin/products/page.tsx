@@ -18,7 +18,7 @@ export default async function AdminProductsPage() {
 
   if (!profile?.tenant_id) {
     if (profile?.role === "super_admin") redirect("/admin/stores");
-    redirect("/admin/onboarding");
+    redirect("/");
   }
 
   const [productsRes, categoriesRes] = await Promise.all([

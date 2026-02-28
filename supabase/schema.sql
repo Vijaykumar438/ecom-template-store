@@ -156,7 +156,11 @@ CREATE POLICY "Tenants are publicly readable"
 
 -- Owner or super_admin can update tenants
 CREATE POLICY "Owners can update their tenant"
-  ON tenants FOR UPDATE USING (auth.uid() = owner_user_id OR is_super_admin());
+  ON tenants FOR UPDATE USING (
+    auth.uid() = owner_user_id
+    OR id IN (SELECT tenant_id FROM profiles WHERE user_id = auth.uid() AND tenant_id IS NOT NULL)
+    OR is_super_admin()
+  );
 
 -- Owner or super_admin can create tenants
 CREATE POLICY "Authenticated users can create tenants"
@@ -183,6 +187,7 @@ CREATE POLICY "Categories are publicly readable"
 CREATE POLICY "Tenant owners can manage categories"
   ON categories FOR ALL USING (
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR tenant_id IN (SELECT tenant_id FROM profiles WHERE user_id = auth.uid() AND tenant_id IS NOT NULL)
     OR is_super_admin()
   );
 
@@ -193,6 +198,7 @@ CREATE POLICY "Available products are publicly readable"
 CREATE POLICY "Tenant owners can manage products"
   ON products FOR ALL USING (
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR tenant_id IN (SELECT tenant_id FROM profiles WHERE user_id = auth.uid() AND tenant_id IS NOT NULL)
     OR is_super_admin()
   );
 
@@ -201,6 +207,7 @@ CREATE POLICY "Customers can view their orders"
   ON orders FOR SELECT USING (
     user_id = auth.uid() OR
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR tenant_id IN (SELECT tenant_id FROM profiles WHERE user_id = auth.uid() AND tenant_id IS NOT NULL)
     OR is_super_admin()
   );
 
@@ -210,6 +217,7 @@ CREATE POLICY "Anyone can create orders (guest checkout)"
 CREATE POLICY "Tenant owners can update orders"
   ON orders FOR UPDATE USING (
     tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+    OR tenant_id IN (SELECT tenant_id FROM profiles WHERE user_id = auth.uid() AND tenant_id IS NOT NULL)
     OR is_super_admin()
   );
 
@@ -219,6 +227,7 @@ CREATE POLICY "Order items readable with order access"
     order_id IN (SELECT id FROM orders WHERE
       user_id = auth.uid() OR
       tenant_id IN (SELECT id FROM tenants WHERE owner_user_id = auth.uid())
+      OR tenant_id IN (SELECT tenant_id FROM profiles WHERE user_id = auth.uid() AND tenant_id IS NOT NULL)
     )
     OR is_super_admin()
   );

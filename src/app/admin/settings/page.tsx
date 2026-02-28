@@ -19,7 +19,7 @@ export default async function AdminSettingsPage() {
 
   if (!profile?.tenant_id) {
     if (profile?.role === "super_admin") redirect("/admin/stores");
-    redirect("/admin/onboarding");
+    redirect("/");
   }
 
   return <SettingsForm tenant={(profile as any).tenants as Tenant} />;

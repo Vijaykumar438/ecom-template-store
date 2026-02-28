@@ -18,7 +18,7 @@ export default async function AdminCategoriesPage() {
 
   if (!profile?.tenant_id) {
     if (profile?.role === "super_admin") redirect("/admin/stores");
-    redirect("/admin/onboarding");
+    redirect("/");
   }
 
   const { data: categories } = await supabase
