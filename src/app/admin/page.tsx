@@ -19,6 +19,10 @@ export default async function AdminDashboardPage() {
     .single();
 
   if (!profile?.tenant_id) {
+    // Super admin without a selected store → go to store management
+    if (profile?.role === "super_admin") {
+      redirect("/admin/stores");
+    }
     redirect("/admin/onboarding");
   }
 

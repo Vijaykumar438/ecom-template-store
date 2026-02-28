@@ -17,7 +17,10 @@ export default async function AdminSettingsPage() {
     .eq("user_id", user.id)
     .single();
 
-  if (!profile?.tenant_id) redirect("/admin/onboarding");
+  if (!profile?.tenant_id) {
+    if (profile?.role === "super_admin") redirect("/admin/stores");
+    redirect("/admin/onboarding");
+  }
 
   return <SettingsForm tenant={(profile as any).tenants as Tenant} />;
 }

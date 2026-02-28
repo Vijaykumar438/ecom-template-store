@@ -16,7 +16,10 @@ export default async function AdminOrdersPage() {
     .eq("user_id", user.id)
     .single();
 
-  if (!profile?.tenant_id) redirect("/admin/onboarding");
+  if (!profile?.tenant_id) {
+    if (profile?.role === "super_admin") redirect("/admin/stores");
+    redirect("/admin/onboarding");
+  }
 
   const { data: orders } = await supabase
     .from("orders")
