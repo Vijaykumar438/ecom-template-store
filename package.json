@@ -1,5 +1,5 @@
 {
-  "name": "ecom-template",
+  "name": "ecom-template-store",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.98.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.34.3",
+    "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.5.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
